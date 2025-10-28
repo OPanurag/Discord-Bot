@@ -27,11 +27,15 @@ import google.generativeai as genai
 # Logging
 # -----------------------
 os.makedirs("logs", exist_ok=True)
+# remove existing handlers to avoid duplicate messages when reloading
+for h in logging.root.handlers[:]:
+    logging.root.removeHandler(h)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s",
     handlers=[
-        logging.FileHandler("logs/app.log"),
+        logging.FileHandler("logs/app.log", mode="a"),
         logging.StreamHandler()
     ]
 )
@@ -99,7 +103,7 @@ def is_product_question(text: str) -> bool:
         return True
     if any(x in text_l for x in ["lol", "haha", "thanks", "gg"]):
         return False
-    return False
+    return True
 
 
 def redact_pii(text: str) -> str:
@@ -217,16 +221,15 @@ def pick_model():
 async def call_gemini(prompt: str) -> str:
     """
     Robust Gemini caller (async):
-    - Tries multiple SDK call patterns.
-    - Uses SELECTED_MODEL as model id.
-    - Runs blocking SDK calls in a thread to avoid blocking the event loop.
+    - Uses a synchronous worker wrapped by asyncio.to_thread to avoid accidentally returning coroutines.
+    - Tries several SDK call patterns and always returns a plain string.
     """
     model_name = SELECTED_MODEL or pick_model()
     if not GEMINI_API_KEY:
         return "Error: GEMINI_API_KEY not configured."
 
-    # We'll run the network call in a thread
-    async def _call():
+    def _call_sync():
+        """Synchronous worker trying multiple SDK patterns; returns text."""
         # Pattern 1: new-style client.models.generate_content if present
         try:
             Client = getattr(genai, "Client", None)
@@ -234,13 +237,10 @@ async def call_gemini(prompt: str) -> str:
                 c = Client()
                 try:
                     resp = c.models.generate_content(model=model_name, contents=prompt)
-                    # resp may be complex; attempt to extract text
                     if hasattr(resp, "text") and resp.text:
                         return resp.text.strip()
-                    # some shapes have 'candidates'
                     if isinstance(resp, dict) and "candidates" in resp:
                         return resp["candidates"][0].get("content", "").strip()
-                    # fallback to str
                     return str(resp)
                 except Exception as e:
                     logging.info("client.models.generate_content failed: %s", e)
@@ -249,20 +249,17 @@ async def call_gemini(prompt: str) -> str:
 
         # Pattern 2: GenerativeModel wrapper (older)
         try:
-            try:
-                gm = genai.GenerativeModel(model_name)
-                resp = gm.generate_content(prompt)
-                if hasattr(resp, "text") and resp.text:
-                    return resp.text.strip()
-                if isinstance(resp, dict) and "candidates" in resp:
-                    return resp["candidates"][0].get("content", "").strip()
-                return str(resp)
-            except Exception as e:
-                logging.info("GenerativeModel.generate_content failed: %s", e)
+            gm = genai.GenerativeModel(model_name)
+            resp = gm.generate_content(prompt)
+            if hasattr(resp, "text") and resp.text:
+                return resp.text.strip()
+            if isinstance(resp, dict) and "candidates" in resp:
+                return resp["candidates"][0].get("content", "").strip()
+            return str(resp)
         except Exception as e:
-            logging.info("GenerativeModel path not usable: %s", e)
+            logging.info("GenerativeModel.generate_content failed: %s", e)
 
-        # Pattern 3: top-level helper (generate_text / generate)
+        # Pattern 3: top-level helper (generate_text / generate) if present
         try:
             if hasattr(genai, "generate_text"):
                 out = genai.generate_text(model=model_name, input=prompt)
@@ -274,19 +271,14 @@ async def call_gemini(prompt: str) -> str:
         except Exception as e:
             logging.info("genai.generate_text failed: %s", e)
 
-        # final fallback
         return "Error: could not generate reply (see logs)."
 
-    # execute in thread
     try:
-        result = await asyncio.to_thread(lambda: asyncio.get_event_loop().run_until_complete(asyncio.sleep(0)) or None)
-        # above is a noop to ensure thread path; instead directly call thread wrapper
-    except Exception:
-        pass
-
-    try:
-        text = await asyncio.to_thread(_call)
-        return text
+        # Run the blocking worker in a thread and await the string result
+        text = await asyncio.to_thread(_call_sync)
+        if text is None:
+            return "Error: empty response from model."
+        return str(text)
     except Exception as e:
         logging.exception("Unexpected error calling Gemini: %s", e)
         return f"Error generating reply: {e}"
@@ -369,6 +361,14 @@ async def on_message(message):
 
     sent_time = datetime.utcnow().isoformat()
     reply = await call_gemini(prompt)
+
+    # Defensive coercion: ensure reply is a plain string
+    if not isinstance(reply, str):
+        try:
+            reply = str(reply)
+        except Exception:
+            reply = "Error: non-text reply received from model."
+
     received_time = datetime.utcnow().isoformat()
 
     # Save metadata

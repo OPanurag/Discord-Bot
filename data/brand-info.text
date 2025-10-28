@@ -1,0 +1,42 @@
+Product: Acme DeFi
+Short description:
+Acme DeFi is a decentralized exchange and yield platform focused on low fees and predictable staking returns. We support token swaps, liquidity provision, and single-asset staking (USDC).
+
+Key facts & numbers:
+- Swap fee: 0.20% per trade (applies on all liquidity pools).
+- Staking APY (USDC single-asset): 5.0% (variable; updated monthly).
+- Supported networks: Ethereum Mainnet, Polygon.
+- Minimum withdrawal: 10 USDC (no fee for withdrawals over 100 USDC).
+- Slippage tolerance default: 0.5% on swaps (users can change).
+
+Support & escalation:
+- Primary support: support@acmedefi.io
+- Urgent cases: escalation to ops-team tag #ops-escalations
+- Typical SLA: Response within 24 business hours for standard tickets.
+
+Security & compliance:
+- Acme DeFi is non-custodial: we do not hold user private keys.
+- We recommend users verify contract addresses and use hardware wallets for large transactions.
+- We do not provide tax advice. For tax questions, consult a professional.
+
+Brand voice guidelines:
+- Tone: concise, helpful, friendly, slightly witty.
+- Do not use aggressive marketing language; be factual and transparent.
+- When unsure or missing info: ask for transaction ID / wallet address (do not request private keys).
+
+Common Q&A (examples):
+Q: What are your fees?
+A: Our swap fee is 0.20% per trade. There may be network gas fees in addition.
+
+Q: My transaction failed — where did my tokens go?
+A: Tokens remain in the blockchain; if a swap reverted, no token transfer occurred. Ask for tx hash and network so we can investigate.
+
+Q: Do you support Layer-2?
+A: We support Polygon currently; Layer-2 integrations are on our roadmap.
+
+Maintenance & roadmap snippets:
+- Next release (Q4): improved transaction history UI and enhanced analytics for LP providers.
+- Upcoming: optional gas optimization feature for Polygon.
+
+Admin notes:
+- Do not share internal metrics publicly (e.g., revenue, active users) without approval.

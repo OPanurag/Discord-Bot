@@ -1,6 +1,4 @@
 """
-discord_gemini_bot.py
----------------------------------
 A lightweight Discord engagement automation bot powered by Google Gemini (Free API).
 
 Features:
@@ -199,7 +197,7 @@ def pick_model():
     global SELECTED_MODEL
     try:
         available = list_models_available()
-        logging.info("Available models: %s", available)
+        # logging.info("Available models: %s", available)
         for pref in PREFERRED_MODELS:
             if any(pref in a for a in available):
                 SELECTED_MODEL = pref

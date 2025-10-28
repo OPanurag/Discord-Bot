@@ -22,6 +22,9 @@ from dotenv import load_dotenv
 import discord
 import google.generativeai as genai
 
+import logging
+logging.basicConfig(filename='logs/app.log', level=logging.INFO)
+
 # =======================
 # Environment setup
 # =======================

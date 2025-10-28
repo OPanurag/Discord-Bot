@@ -9,6 +9,7 @@ Features:
 - Posts suggestions in a moderator channel for approval (optional auto-post).
 - Logs all interactions in JSONL for analytics and computes simple stats.
 - Moderator commands: !stats, !refresh
+
 Author: Anurag Mishra (adapted)
 """
 

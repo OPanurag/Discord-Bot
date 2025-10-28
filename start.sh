@@ -53,7 +53,7 @@ run_once() {
 
   # Watch logs for model readiness
   (
-    tail -n0 -f "$LOG_FILE" --pid=$BOT_PID | \
+    gtail -n0 -f "$LOG_FILE" --pid=$BOT_PID | \
     while IFS= read -r line; do
       if [[ "$line" == *"Model"*ready*"accept queries"* ]]; then
         echo "[`date -u +'%Y-%m-%dT%H:%M:%SZ'`] ✅ Model is ready to interact (detected from bot logs)" | tee -a "$LOG_FILE"
